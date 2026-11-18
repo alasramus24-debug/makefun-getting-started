@@ -21,6 +21,7 @@ signing up through the link in the next sections is the nicest way to say thanks
 - [Build with your agent](#build-with-your-agent)
 - [The transcript gate, in plain words](#the-transcript-gate-in-plain-words)
 - [Check locally, then submit](#check-locally-then-submit)
+- [A worked example](#a-worked-example-one-small-bounty-start-to-finish)
 - [Hard-won tips](#hard-won-tips)
 - [Claiming a prize](#claiming-a-prize)
 - [FAQ](#faq)
@@ -69,7 +70,7 @@ bounty's rules say which routes it takes.
 ## Sign up
 
 1. Go to **https://make.fun/r/ffgeaj69** and choose **Sign in**. That link carries referral code
-   ffgeaj69, so your account is credited to this guide — it costs you nothing and changes nothing
+   ffgeaj69, so this guide gets the referral credit — it costs you nothing and changes nothing
    about your own rewards. (If a form ever asks for the code on its own, the code is ffgeaj69.)
 2. Sign in with GitHub, Google, Apple, Discord, or a Solana wallet. Signing in with a wallet sends no
    transaction; it just proves the wallet is yours.
@@ -189,6 +190,31 @@ The gate is a set of pass/fail checks, not a vibe. In plain words, they ask:
 - **Do the transcripts match the commit?** The bundle is hashed and, where the entry is signed, that
   hash is what your wallet signs.
 
+### Walking through a bundle, step by step
+
+It helps to see the gate as a sequence, because each check bites at a different moment:
+
+1. **You run `bundle`.** It finds every session whose work touched your repo — across every harness it
+   knows — and copies those logs in. Sessions that merely share your machine but never touched the
+   repo are left out; a session that started before the competition opened is left out too, and the
+   bundle warns you, because including it would fail the window check.
+2. **It redacts.** Credentials, e-mail addresses, and home paths are stripped from the logs before
+   anything is uploaded. Anything else personal, you can name with `--redact "<text>"`.
+3. **It assembles the run record** from your flags and the sessions: the opening prompt, the harness,
+   the model, the effort, the system prompt, the instruction files, the MCP servers. If a piece is
+   missing — a harness whose logs do not carry the system prompt, say — the bundle writes nothing and
+   tells you the exact flag to add. A refusal here costs nothing; fix the flag and run it again.
+4. **The site replays the same checks on receipt.** Authorship, revision, timestamps, pricing, the run
+   record: the local `check` command (next section) runs them first so there are no surprises, but
+   the server's verdict is the one that counts.
+5. **The grader runs the entry itself.** Only after the transcript gate passes does scoring start —
+   which is why a brilliant entry with broken transcripts scores exactly zero: it never reaches the
+   grader.
+
+Seen this way, the gate is not bureaucracy. Steps 1–3 are bookkeeping your tools mostly do for you,
+and steps 4–5 are the fairness guarantee that makes the prize worth winning: everyone else's entry
+went through the same door.
+
 One warning that deserves its own paragraph: **a handed-over session** — a log your agent exported
 itself because its tool keeps no session record — is accepted, but an entry built on one is *ranked
 without taking a paid place*. If you care about prizes, build in a client whose sessions are recorded
@@ -238,6 +264,41 @@ until it reads **scored** — that is when every check has passed server-side. I
 the status names each failed check and its fix; fix exactly that, and resubmit while the deadline and
 your attempt budget allow. Your most recent submission before the deadline is your final entry.
 
+## A worked example: one small bounty, start to finish
+
+Abstract steps are easier to trust once you have seen them in order, with the clock attached. Here is
+a realistic first entry — a small daily competition, the kind that opens in the evening and closes two
+days later:
+
+- **19:00 — the bounty opens.** You read the page, then the kit's `RULES.txt`, cover to cover. The
+  deliverable is a program plus a picture it writes; the prize pays 50 places; entry is free. You
+  decide it fits your evening.
+- **19:10 — setup.** You download the kit, run `init` to create the entry repo (anchor commit made,
+  MIT license in), and connect the kit to your account with `login` if you have not already.
+- **19:15 — session one: the draft.** You open a fresh agent session *inside the entry repo* — after
+  the opening, so the window check will pass — and have the agent build the simplest version that
+  satisfies the rules. It writes the program in one go and commits. You run the local grade: the
+  program runs, the output is valid, the score is mediocre but real.
+- **20:30 — session one, continued: the revision.** You send the agent back in with a concrete
+  improvement list — handle the edge case the grade exposed, tighten the output, add the self-test the
+  rules hint at. It edits the same files in new messages and commits again. This second pass is what
+  the revision check will later see, and the entry is genuinely better for it.
+- **21:00 — bundle and check.** `bundle` collects the evening's session, attaches the run record (you
+  pass `--system-prompt` and `--effort` because your harness's logs omit them), and `check` reports
+  **0 failed**. Had it failed, this is where you would fix things — for free, without spending an
+  attempt.
+- **21:10 — submit.** You submit the revision commit with your keypair and note the submission id.
+  The receipt is *not* the result.
+- **21:25 — verdict.** `status --submission <id>` now reads **scored**. Every transcript check passed
+  server-side and the entry is in. Whatever happens at judging, it will be decided on the entry's
+  merits — which is all you can ask of a first submission.
+- **Two days later — results.** The entry placed 31st of several thousand: a small prize, claimed from
+  the profile to the same wallet that signed the entry. Not life-changing — but the loop is now
+  muscle memory, and the next bounty starts from experience instead of from this guide.
+
+Notice what is *not* in the timeline: no heroics, no last-minute rebuild, no second submission. The
+boring discipline — read the rules, draft, revise, check, submit once — is the whole trick.
+
 ## Hard-won tips
 
 These come from real campaigns, mostly learned the expensive way:
@@ -259,6 +320,15 @@ These come from real campaigns, mostly learned the expensive way:
    (minified builds where the kit has them). Bulk-copied source files swamp your authored-line share.
 7. **Watch the status, not the receipt.** "Submitted" is a promise to look, not a verdict. The
    verdict is the status reaching scored.
+8. **Check your remaining attempts before you spend one.** `status --competition <slug>` shows the
+   day's cap and how much of it is left. If it says 1, you do not have a submission and a fix — you
+   have a submission. Plan accordingly.
+9. **Guard the signing wallet.** The keypair that signs your entry is the wallet the prize is claimed
+   to. Back the keypair file up, never paste it anywhere, and never submit from a wallet you do not
+   fully control — a winning entry paid to a lost wallet is just a story you tell later.
+10. **Finish the repository's public face.** For repository entries, some bounties check the repo
+    itself — the README rendering on the page, the About website and topic. Set them before you
+    submit; it takes two minutes and it is part of the entry, not decoration.
 
 ## Claiming a prize
 
